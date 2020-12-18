@@ -1,0 +1,490 @@
+---
+title: "Data management"
+subtitle: "AST data description by place"
+author: "David Oseguera Montiel"
+#date: "2016/12/12"
+output:
+  xaringan::moon_reader:
+    seal: false
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      countIncrementalSlides: false
+---
+
+class: center, inverse
+background-image: url("assets/img/dtured.png")
+
+background-size: 910px 680px
+
+
+---
+
+class: center, inverse
+background-image: url("assets/img/dtub.png")
+
+background-size: 910px 680px
+
+---
+
+
+
+# Why do we need a map?
+
+![](assets/img/wonder.png)
+
+---
+
+class: center, bottom, inverse
+
+# Learning objectives
+
+--
+
+ **Illustrate** the importance of mapping 
+
+--
+
+ **Select** the type of map needed for a specific purpose
+
+--
+
+ **Recall** the type of data for specific maps
+
+--
+
+**Have fun!**
+
+
+--
+
+.
+
+--
+
+Let's start
+
+---
+
+
+background-image: url("assets/img/kort.png")
+
+#"Without geography, you're nowhere!"
+― Jimmy Buffett"
+
+---
+
+
+
+background-image: url("assets/img/flamenco_1.jpg")
+background-size: 910px 685px
+
+
+"... A map tells you where __you’ve been__, where __you are__, and where __you’re going__
+... " ― Peter Greenaway
+
+---
+class: inverse
+
+background-image: url("assets/img/periquitos.jpg")
+background-size: 910px 685px
+
+# Comunicating
+
+---
+
+
+background-image: url("assets/img/corre.png")
+
+"...Everything is related to everything else, but near things are more related than distant things." - W. R. Tobler 
+
+---
+
+
+
+
+
+
+
+class: bottom
+background-image: url("assets/img/yellow_fever.jpg")
+background-size: contain
+---
+
+class: center, bottom, inverse
+# Spot map
+--
+
+A spot map shows a geographic location of individuals or anything you are after
+
+--
+
+**For example,** Denmark cities where ESBL _E.coli_ has been found 
+
+
+
+---
+
+
+```{r}
+```{r esbldt, echo=FALSE, message=FALSE}
+library(tidyverse); library(here)
+esbl <- read_csv(here("data", "esbl3.csv"))
+
+esbl[] <- lapply(esbl, as.character) # let's change values as characters
+esbl$sampleType <- recode_factor(esbl$sampleType, "1" = "broilers", 
+                                 "2" = "danishMeat", "3" = "importedMeat")
+# let's give different names to the sampleType observations
+esb <- pivot_longer(esbl, -c(id, sampleType), 
+                    names_to = "variables", values_to = "presence") # this is to make it long
+```
+
+
+
+```{r spatiallib, echo=FALSE, message=FALSE}
+nc <- read_csv(here("data", "cities.csv"))
+nf <- slice_sample(nc, n = 8827, replace = TRUE)
+nt <- bind_cols(esb, nf)
+nw <- subset(nt, presence == "1" & variables == "ESBL_phtype")
+#knitr::kable(nw, format = 'html')
+names(nw)[2] <- "sample"
+names(nw)[4] <- "case"
+library(data.table)
+DT::datatable(nw,
+  fillContainer = FALSE, options = list(pageLength = 10)
+)
+
+```
+
+---
+
+
+
+```{r mapingpoints2, echo=FALSE, message=FALSE}
+library(sp); library(leaflet)
+coordinates(nw) <- ~long+lat
+leaflet(nw, width = 800, height = 700) %>% addMarkers() %>% addTiles()
+  #unique(dfg$Region)
+#leaflet(dfg) %>% addTiles() %>%
+ # addCircles(lng = ~longitude, lat = ~latitude, weight = 1,
+  #  radius = ~sqrt(Pop) * 30, popup = ~Town
+  #)
+```
+
+---
+
+class: bottom
+
+background-image: url("assets/img/work.png")
+
+--
+
+# Spot map set by step:  
+
+
+
+---
+
+class: bottom
+
+# How to do Spot map
+
+--
+
+_Steps_
+
+--
+
+1. find a problem
+
+--
+
+2. setup 
+
+
+--
+
+3. load the data in `R` 
+
+--
+
+4. filter/clean data 
+
+--
+
+5. plot the map with coordinates to show focal points 
+
+---
+
+
+class: center, inverse
+
+# 1. Problem
+
+--
+
+Let's talk about health facilities in Ghana: 
+
+--
+
+Imagine we are urge to spot hospitals owned by the government 
+
+--
+
+And we want to see those facilities in a map.
+
+
+---
+
+class: bottom, center
+
+
+# 2. Set up 
+
+--
+
+- some set of packages contained in a single package `tidyverse`
+
+--
+
+```{r tidyn, echo=TRUE, eval=FALSE}
+library(tidyverse)
+```
+
+--
+
+- some specific packages for mapping
+
+--
+
+
+
+```{r mapingpoints, echo=TRUE}
+library(sp); library(leaflet) # First load some packages
+```
+
+
+
+
+
+---
+
+# 3. Load the data
+
+
+
+
+```{r readsp0, echo=TRUE, message=FALSE}
+df <- read_csv("https://tinyurl.com/ycw5oxlq")
+```
+
+
+
+```{r see, echo=FALSE}
+dfa <- df[,-c(2,3,5)]
+knitr::kable(head(dfa), format = 'html')
+```
+
+---
+
+# 4. Filter and clean the data
+
+```{r filterd, echo=TRUE}
+df <- df %>%
+          filter(Ownership == "Government" & Type == "Hospital")
+```
+--
+
+```{r naomit, echo=TRUE}
+df <- na.omit(df) # Second remove na data
+```
+--
+
+```{r cleaned, echo=FALSE}
+ddf <- df[,-c(2,3,5)]
+knitr::kable(head(ddf,8, format = "html"))
+```
+
+
+
+---
+
+
+
+# 5. Make a plot
+
+
+--
+
+
+```{r plot, echo=TRUE, eval=FALSE}
+coordinates(df) <- ~longitude+latitude
+```
+
+--
+
+```{r plotn, echo=TRUE, eval=FALSE}
+leaflet(df, height = 300) %>% addMarkers() %>% addTiles()
+```
+
+
+
+```{r plotv, echo=FALSE}
+coordinates(df) <- ~longitude+latitude
+l <- leaflet(df, height = 300) %>% addMarkers() %>% addTiles()
+```
+
+--
+
+```{r l, echo=FALSE}
+l
+```
+---
+
+
+
+background-image: url("assets/img/france2.png")
+background-size: 910px 680px
+---
+
+
+
+class: inverse, center
+# Choroplets
+
+--
+
+Choropleth maps are a great tool to display quantities in a specific geographic area
+---
+
+
+
+```{r spcor, echo=FALSE, eval=FALSE, message=FALSE}
+library(ggplot2)
+load(url("http://github.com/mgimond/Spatial/raw/master/Data/moransI.RData"))
+s <- fortify(s1)
+#head(s)
+su <- cbind(s, s1@data[s$id,])
+
+gp <- ggplot(su, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = Income), colour = alpha("white", 1/2), size = 0.2)
+gp
+#ggsave("correlacion.png")
+#+ #did not work
+ #  scale_fill_brewer(pal = "PuRd") #did not work 
+
+#library(tmap) #another way 
+#tm_shape(s1) + tm_polygons(style="quantile", col = "Income") +
+ # tm_legend(outside = TRUE, text.size = .8)
+```
+
+background-image: url("assets/img/correlacion.png")
+
+background-size: 840px 680px
+---
+
+class: center
+
+# Human development index of Africa
+
+```{r mapping_easy, echo=FALSE, message=FALSE}
+library(tidyverse)
+library(sf)
+library(spData)
+library(cartogram) 
+library(raster)
+```
+
+```{r mapchor, echo=FALSE}
+africa = world %>%  
+  
+  filter(continent == "Africa", !is.na(iso_a2)) %>% 
+  
+  left_join(worldbank_df, by = "iso_a2") %>% 
+  
+  dplyr::select(name, subregion, gdpPercap, HDI, pop_growth) %>% 
+  
+  st_transform("+proj=aea +lat_1=20 +lat_2=-23 +lat_0=0 +lon_0=25")
+```
+
+```{r choromap, echo=FALSE}
+ggplot(africa) +
+  geom_sf(aes(geometry = geom, fill = HDI)) 
+```
+---
+
+
+class: bottom
+
+background-image: url("assets/img/work.png")
+
+--
+
+# Choroplet map set by step:  
+
+
+---
+
+
+
+class: bottom
+
+# How to do Choropleth map
+
+--
+
+_Steps_
+
+--
+
+1. find a problem
+
+--
+
+2. setup 
+
+
+--
+
+3. load the data in `R` 
+
+--
+
+4. merge data 
+
+--
+
+5. plot the map
+
+---
+
+
+
+class: inverse
+
+background-image: url("assets/img/castor.jpg")
+background-size: contain
+
+Here is your turn:
+         
+> "tell me, I forget
+
+>show me, I remember
+
+>involve me, I understand"
+
+>`r tufte::quote_footer('--- Chinesse proverb')`
+
+
+
+---
+
+# To be finished:
+
+
+- step by step choropleth explained
+
+- variation of choropleth explained
+
+- set up exercise
+
